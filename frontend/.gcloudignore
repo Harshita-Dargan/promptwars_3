@@ -1,0 +1,14 @@
+.gcloudignore
+.git
+.gitignore
+
+# node.js files
+node_modules/
+npm-debug.log
+
+# next.js files
+.next/
+out/
+build/
+.tsbuildinfo
+next-env.d.ts

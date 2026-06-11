@@ -1,0 +1,19 @@
+.gcloudignore
+.git
+.gitignore
+
+# Python files
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Databases and secrets
+carbon.db
+.env
