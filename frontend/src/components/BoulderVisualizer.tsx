@@ -46,6 +46,8 @@ export default function BoulderVisualizer({ currentMass, baselineMass }: Boulder
         <svg
           viewBox="0 0 200 200"
           className="w-full h-full drop-shadow-[0_25px_25px_rgba(0,0,0,0.85)] filter"
+          role="img"
+          aria-label="Visual representation of carbon burden boulder. Boulder shrinks and cracks as carbon debt is reduced."
         >
           <defs>
             <radialGradient id="boulderGrad" cx="40%" cy="40%" r="60%">
@@ -160,7 +162,7 @@ export default function BoulderVisualizer({ currentMass, baselineMass }: Boulder
 
       {/* Narrative Weight Readout */}
       <div className="text-center mt-6 relative z-10">
-        <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest block">
+        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">
           Carbon Burden
         </span>
         <h4 className="text-2xl font-black text-white mt-1">

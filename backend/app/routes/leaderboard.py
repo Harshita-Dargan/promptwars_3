@@ -19,8 +19,10 @@ async def get_leaderboard(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Fetch real users who have onboarded
-    users = db.query(User).filter(User.onboarding_completed == True).all()
+    # Fetch real users who have onboarded, sorted by altitude descending, limited to top 50 to avoid memory bottlenecks
+    users = db.query(User).filter(
+        User.onboarding_completed == True
+    ).order_by(User.altitude.desc()).limit(50).all()
 
     # Compile leaderboard entries
     entries = []

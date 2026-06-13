@@ -34,6 +34,45 @@ interface UserState {
   onboarding_completed: boolean;
 }
 
+interface QuizOption {
+  value: string;
+  label: string;
+  mass_factor_kg: number;
+}
+
+interface QuizQuestion {
+  id: string;
+  question: string;
+  category: string;
+  options: QuizOption[];
+}
+
+interface ActionItem {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  carbon_saving: number;
+  difficulty: string;
+  auto_verify_provider: string | null;
+  user_status: "active" | "completed" | "skipped" | null;
+  verified: boolean;
+}
+
+interface LeaderboardUser {
+  rank: number;
+  username: string;
+  altitude: number;
+  current_mass: number;
+  baseline_mass: number;
+}
+
+interface ProgressLog {
+  date: string;
+  mass_debt: number;
+  altitude: number;
+}
+
 export default function Home() {
   // Authentication state
   const [token, setToken] = useState<string | null>(null);
@@ -46,13 +85,14 @@ export default function Home() {
 
   // Application data states
   const [activeTab, setActiveTab] = useState<"vision" | "actions" | "leaderboard">("vision");
-  const [quizQuestions, setQuizQuestions] = useState([]);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
   const [latestStory, setLatestStory] = useState<{ story_text: string; environmental_state: string } | null>(null);
-  const [actionsList, setActionsList] = useState([]);
-  const [leaderboardList, setLeaderboardList] = useState([]);
-  const [progressHistory, setProgressHistory] = useState([]);
+  const [actionsList, setActionsList] = useState<ActionItem[]>([]);
+  const [leaderboardList, setLeaderboardList] = useState<LeaderboardUser[]>([]);
+  const [progressHistory, setProgressHistory] = useState<ProgressLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionSuccessMessage, setActionSuccessMessage] = useState("");
+  const [actionError, setActionError] = useState("");
 
   // Sync token from localStorage on mount
   useEffect(() => {
@@ -236,6 +276,7 @@ export default function Home() {
   };
 
   const handleQuizSubmit = async (answers: Record<string, string>) => {
+    setActionError("");
     try {
       const res = await fetch(`${API_BASE}/api/quiz/submit`, {
         method: "POST",
@@ -255,14 +296,18 @@ export default function Home() {
           });
         }
       } else {
-        alert("Failed to submit onboarding quiz responses.");
+        setActionError("Failed to submit onboarding quiz responses.");
+        setTimeout(() => setActionError(""), 5000);
       }
     } catch (e) {
       console.error(e);
+      setActionError("A network error occurred. Failed to submit quiz responses.");
+      setTimeout(() => setActionError(""), 5000);
     }
   };
 
   const handleRegenerateStory = async () => {
+    setActionError("");
     try {
       const res = await fetch(`${API_BASE}/api/story/regenerate`, {
         method: "POST",
@@ -271,13 +316,19 @@ export default function Home() {
       if (res.ok) {
         const data = await res.json();
         setLatestStory(data);
+      } else {
+        setActionError("Failed to regenerate ecosystem story.");
+        setTimeout(() => setActionError(""), 5000);
       }
     } catch (e) {
       console.error(e);
+      setActionError("A network error occurred. Failed to regenerate ecosystem story.");
+      setTimeout(() => setActionError(""), 5000);
     }
   };
 
   const handleStartAction = async (actionId: string) => {
+    setActionError("");
     try {
       const res = await fetch(`${API_BASE}/api/actions/${actionId}/start`, {
         method: "POST",
@@ -285,13 +336,19 @@ export default function Home() {
       });
       if (res.ok) {
         fetchAllData();
+      } else {
+        setActionError("Failed to commit to habit.");
+        setTimeout(() => setActionError(""), 5000);
       }
     } catch (e) {
       console.error(e);
+      setActionError("A network error occurred. Failed to commit to habit.");
+      setTimeout(() => setActionError(""), 5000);
     }
   };
 
   const handleCompleteAction = async (actionId: string) => {
+    setActionError("");
     try {
       const res = await fetch(`${API_BASE}/api/actions/${actionId}/complete`, {
         method: "POST",
@@ -302,14 +359,20 @@ export default function Home() {
         setActionSuccessMessage(data.message);
         setTimeout(() => setActionSuccessMessage(""), 5000);
         fetchAllData();
+      } else {
+        setActionError("Failed to complete action.");
+        setTimeout(() => setActionError(""), 5000);
       }
     } catch (e) {
       console.error(e);
+      setActionError("A network error occurred. Failed to complete action.");
+      setTimeout(() => setActionError(""), 5000);
     }
   };
 
   // Mock auto-verify provider simulation to verify zero-friction UX flow
   const handleAutoVerifyAction = async (actionId: string, provider: string) => {
+    setActionError("");
     try {
       // Mock utility response data
       const mockPayload = {
@@ -331,10 +394,13 @@ export default function Home() {
         setTimeout(() => setActionSuccessMessage(""), 5000);
         fetchAllData();
       } else {
-        alert("Automated verification failed.");
+        setActionError("Automated verification failed.");
+        setTimeout(() => setActionError(""), 5000);
       }
     } catch (e) {
       console.error(e);
+      setActionError("A network error occurred. Automated verification failed.");
+      setTimeout(() => setActionError(""), 5000);
     }
   };
 
@@ -344,7 +410,7 @@ export default function Home() {
       <header className="border-b border-slate-900 bg-slate-950/70 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Cloud className="w-6 h-6 text-sky-400" />
+            <Cloud className="w-6 h-6 text-sky-400" aria-hidden="true" />
             <span className="font-extrabold text-lg tracking-tight bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-400 text-transparent">
               ANTIGRAVITY CARBON
             </span>
@@ -355,9 +421,9 @@ export default function Home() {
               <span className="text-sm font-semibold text-slate-400">@{user.username}</span>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 text-slate-500 hover:text-red-400 text-xs font-bold transition-all py-1.5 px-3 rounded-full hover:bg-slate-900 border border-slate-900 hover:border-slate-800"
+                className="flex items-center gap-1 text-slate-400 hover:text-red-400 text-xs font-bold transition-all py-1.5 px-3 rounded-full hover:bg-slate-900 border border-slate-900 hover:border-slate-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Disconnect</span>
               </button>
             </div>
@@ -382,7 +448,7 @@ export default function Home() {
                 <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/10 via-slate-950 to-stone-950/20 pointer-events-none" />
 
                 <div className="relative z-10 flex flex-col items-center mb-6">
-                  <Cloud className="w-10 h-10 text-sky-400 mb-3" />
+                  <Cloud className="w-10 h-10 text-sky-400 mb-3" aria-hidden="true" />
                   <h2 className="text-2xl font-black text-white">
                     {authMode === "login" ? "Begin Ascension" : "Initialize Account"}
                   </h2>
@@ -399,54 +465,57 @@ export default function Home() {
                   )}
 
                   <div>
-                    <label className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1.5">
+                    <label htmlFor="username_field" className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block mb-1.5">
                       Username
                     </label>
                     <input
+                      id="username_field"
                       type="text"
                       required
                       value={username}
                       onChange={e => setUsername(e.target.value)}
                       placeholder="Enter username"
-                      className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none text-white px-4 py-3 rounded-xl text-sm transition-all"
+                      className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white px-4 py-3 rounded-xl text-sm transition-all"
                     />
                   </div>
 
                   {authMode === "register" && (
                     <div>
-                      <label className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1.5">
+                      <label htmlFor="email_field" className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block mb-1.5">
                         Email Address
                       </label>
                       <input
+                        id="email_field"
                         type="email"
                         required
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         placeholder="Enter email"
-                        className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none text-white px-4 py-3 rounded-xl text-sm transition-all"
+                        className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white px-4 py-3 rounded-xl text-sm transition-all"
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest block mb-1.5">
+                    <label htmlFor="password_field" className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block mb-1.5">
                       Password
                     </label>
                     <input
+                      id="password_field"
                       type="password"
                       required
                       value={password}
                       onChange={e => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none text-white px-4 py-3 rounded-xl text-sm transition-all"
+                      className="w-full bg-slate-900 border border-slate-800 focus:border-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 text-white px-4 py-3 rounded-xl text-sm transition-all"
                     />
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all duration-300 shadow-lg shadow-indigo-950/40 hover:scale-[1.01] flex items-center justify-center gap-2"
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-3.5 rounded-xl text-sm transition-all duration-300 shadow-lg shadow-indigo-950/40 hover:scale-[1.01] flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
                   >
-                    {authMode === "login" ? <Lock className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                    {authMode === "login" ? <Lock className="w-4 h-4" aria-hidden="true" /> : <UserPlus className="w-4 h-4" aria-hidden="true" />}
                     <span>{authMode === "login" ? "Login" : "Register"}</span>
                   </button>
                 </form>
@@ -456,7 +525,7 @@ export default function Home() {
                     {authMode === "login" ? "New here?" : "Already registered?"}{" "}
                     <button
                       onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}
-                      className="text-sky-400 hover:underline font-bold"
+                      className="text-sky-400 hover:underline font-bold focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none rounded"
                     >
                       {authMode === "login" ? "Create an account" : "Sign in"}
                     </button>
@@ -496,18 +565,18 @@ export default function Home() {
                 <div className="bg-slate-950 border border-slate-900 rounded-3xl p-5">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-widest block">
+                      <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">
                         Timelines
                       </span>
                       <h5 className="text-sm font-bold text-slate-200 mt-0.5">Atmospheric Altitude</h5>
                     </div>
-                    <Activity className="w-4 h-4 text-emerald-400" />
+                    <Activity className="w-4 h-4 text-emerald-400" aria-hidden="true" />
                   </div>
 
                   {/* SVG Sparkline Graph */}
                   {progressHistory.length > 0 ? (
                     <div className="h-28 w-full mt-2 relative">
-                      <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible">
+                      <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible" aria-label="Ecosystem Altitude progress sparkline graph">
                         <defs>
                           <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
@@ -557,12 +626,12 @@ export default function Home() {
                       </svg>
                     </div>
                   ) : (
-                    <div className="h-28 flex items-center justify-center text-xs text-slate-500 italic">
+                    <div className="h-28 flex items-center justify-center text-xs text-slate-400 italic">
                       Constructing visual logs...
                     </div>
                   )}
                   
-                  <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold mt-3">
+                  <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold mt-3">
                     <span>Baseline Onboard</span>
                     <span>Today</span>
                   </div>
@@ -573,40 +642,52 @@ export default function Home() {
               <div className="lg:col-span-8 flex flex-col gap-6">
                 
                 {/* Custom Tab Selector */}
-                <div className="bg-slate-950 border border-slate-900 p-1.5 rounded-2xl flex gap-1 w-full max-w-lg mx-auto sm:mx-0">
+                <div role="tablist" aria-label="Ecosystem and actions navigation" className="bg-slate-950 border border-slate-900 p-1.5 rounded-2xl flex gap-1 w-full max-w-lg mx-auto sm:mx-0">
                   <button
+                    id="vision-tab"
+                    role="tab"
+                    aria-selected={activeTab === "vision"}
+                    aria-controls="vision-tabpanel"
                     onClick={() => setActiveTab("vision")}
-                    className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                       activeTab === "vision"
                         ? "bg-slate-900 border border-slate-800 text-white shadow-md"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    <Compass className="w-4 h-4" />
+                    <Compass className="w-4 h-4" aria-hidden="true" />
                     <span>Ecosystem Vision</span>
                   </button>
 
                   <button
+                    id="actions-tab"
+                    role="tab"
+                    aria-selected={activeTab === "actions"}
+                    aria-controls="actions-tabpanel"
                     onClick={() => setActiveTab("actions")}
-                    className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                       activeTab === "actions"
                         ? "bg-slate-900 border border-slate-800 text-white shadow-md"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    <Zap className="w-4 h-4" />
+                    <Zap className="w-4 h-4" aria-hidden="true" />
                     <span>Action Registry</span>
                   </button>
 
                   <button
+                    id="leaderboard-tab"
+                    role="tab"
+                    aria-selected={activeTab === "leaderboard"}
+                    aria-controls="leaderboard-tabpanel"
                     onClick={() => setActiveTab("leaderboard")}
-                    className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 ${
+                    className={`flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 flex items-center justify-center gap-1.5 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none ${
                       activeTab === "leaderboard"
                         ? "bg-slate-900 border border-slate-800 text-white shadow-md"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    <Award className="w-4 h-4" />
+                    <Award className="w-4 h-4" aria-hidden="true" />
                     <span>Ascension Heights</span>
                   </button>
                 </div>
@@ -618,116 +699,148 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-emerald-500/10 border border-emerald-950/30 text-emerald-400 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2"
                   >
-                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <CheckCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
                     <span>{actionSuccessMessage}</span>
                   </motion.div>
                 )}
 
-                <div className="min-h-[400px]">
-                  {activeTab === "vision" && latestStory && (
-                    <StoryDashboard
-                      storyText={latestStory.story_text}
-                      environmentalState={latestStory.environmental_state as any}
-                      currentMass={user.current_mass}
-                      altitude={user.altitude}
-                      onRegenerate={handleRegenerateStory}
-                    />
-                  )}
+                {actionError && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-red-500/10 border border-red-950/30 text-red-400 text-xs font-bold p-3.5 rounded-2xl flex items-center gap-2"
+                  >
+                    <HelpCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    <span>{actionError}</span>
+                  </motion.div>
+                )}
 
-                  {activeTab === "actions" && (
-                    <div className="space-y-4">
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-950 border border-slate-900 p-5 rounded-3xl mb-2">
-                        <div>
-                          <h3 className="text-lg font-extrabold text-white">Chip Away Mass</h3>
-                          <p className="text-slate-400 text-xs mt-0.5">
-                            Commit to habits or connect utilities for automated delta verification.
-                          </p>
+                <div className="min-h-[400px]">
+                  <div
+                    id="vision-tabpanel"
+                    role="tabpanel"
+                    aria-labelledby="vision-tab"
+                    hidden={activeTab !== "vision"}
+                  >
+                    {activeTab === "vision" && latestStory && (
+                      <StoryDashboard
+                        storyText={latestStory.story_text}
+                        environmentalState={latestStory.environmental_state as any}
+                        currentMass={user.current_mass}
+                        altitude={user.altitude}
+                        onRegenerate={handleRegenerateStory}
+                      />
+                    )}
+                  </div>
+
+                  <div
+                    id="actions-tabpanel"
+                    role="tabpanel"
+                    aria-labelledby="actions-tab"
+                    hidden={activeTab !== "actions"}
+                  >
+                    {activeTab === "actions" && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-slate-950 border border-slate-900 p-5 rounded-3xl mb-2">
+                          <div>
+                            <h3 className="text-lg font-extrabold text-white">Chip Away Mass</h3>
+                            <p className="text-slate-400 text-xs mt-0.5">
+                              Commit to habits or connect utilities for automated delta verification.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {actionsList.map((act: any) => (
+                            <div
+                              key={act.id}
+                              className={`p-5 rounded-3xl border bg-slate-950/50 backdrop-blur-sm flex flex-col justify-between h-[230px] transition-all ${
+                                act.user_status === "completed"
+                                  ? "border-emerald-950/30 bg-emerald-950/5"
+                                  : "border-slate-900 hover:border-slate-800"
+                              }`}
+                            >
+                              <div>
+                                <div className="flex justify-between items-start">
+                                  <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                                    act.category === "transit"
+                                      ? "border-sky-900/40 text-sky-400 bg-sky-950/10"
+                                      : act.category === "diet"
+                                        ? "border-emerald-900/40 text-emerald-400 bg-emerald-950/10"
+                                        : act.category === "energy"
+                                          ? "border-amber-900/40 text-amber-400 bg-amber-950/10"
+                                          : "border-purple-900/40 text-purple-400 bg-purple-950/10"
+                                  }`}>
+                                    {act.category}
+                                  </span>
+                                  <span className="text-xs text-sky-400 font-extrabold">
+                                    -{act.carbon_saving} kg/yr
+                                  </span>
+                                </div>
+                                <h4 className="text-base font-bold text-white mt-3">{act.title}</h4>
+                                <p className="text-slate-400 text-xs mt-1.5 line-clamp-3 leading-relaxed">
+                                  {act.description}
+                                </p>
+                              </div>
+
+                              <div className="flex gap-2 mt-4 pt-2 border-t border-slate-900/50">
+                                {/* Option 1: Not Committed yet */}
+                                {!act.user_status && (
+                                  <button
+                                    onClick={() => handleStartAction(act.id)}
+                                    className="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 text-xs font-extrabold py-2 px-4 rounded-xl transition-all focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
+                                  >
+                                    Commit Habit
+                                  </button>
+                                )}
+
+                                {/* Option 2: Active (Committed but not completed yet) */}
+                                {act.user_status === "active" && (
+                                  <>
+                                    <button
+                                      onClick={() => handleCompleteAction(act.id)}
+                                      className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-2 px-3 rounded-xl transition-all focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:outline-none"
+                                    >
+                                      Done
+                                    </button>
+                                    {act.auto_verify_provider && (
+                                      <button
+                                        onClick={() => handleAutoVerifyAction(act.id, act.auto_verify_provider)}
+                                        className="flex-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-sky-400 text-xs font-extrabold py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none"
+                                        title={`Auto-verify via ${act.auto_verify_provider}`}
+                                      >
+                                        <ShieldCheck className="w-3.5 h-3.5 text-sky-400" aria-hidden="true" />
+                                        <span>Auto-Verify</span>
+                                      </button>
+                                    )}
+                                  </>
+                                )}
+
+                                {/* Option 3: Completed */}
+                                {act.user_status === "completed" && (
+                                  <div className="w-full flex items-center justify-center gap-1.5 text-emerald-400 text-xs font-extrabold py-2 bg-emerald-950/20 rounded-xl border border-emerald-900/30">
+                                    <CheckCircle className="w-4 h-4" aria-hidden="true" />
+                                    <span>Mass Chipped Off!</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
+                    )}
+                  </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {actionsList.map((act: any) => (
-                          <div
-                            key={act.id}
-                            className={`p-5 rounded-3xl border bg-slate-950/50 backdrop-blur-sm flex flex-col justify-between h-[230px] transition-all ${
-                              act.user_status === "completed"
-                                ? "border-emerald-950/30 bg-emerald-950/5"
-                                : "border-slate-900 hover:border-slate-800"
-                            }`}
-                          >
-                            <div>
-                              <div className="flex justify-between items-start">
-                                <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${
-                                  act.category === "transit"
-                                    ? "border-sky-900/40 text-sky-400 bg-sky-950/10"
-                                    : act.category === "diet"
-                                      ? "border-emerald-900/40 text-emerald-400 bg-emerald-950/10"
-                                      : act.category === "energy"
-                                        ? "border-amber-900/40 text-amber-400 bg-amber-950/10"
-                                        : "border-purple-900/40 text-purple-400 bg-purple-950/10"
-                                }`}>
-                                  {act.category}
-                                </span>
-                                <span className="text-xs text-sky-400 font-extrabold">
-                                  -{act.carbon_saving} kg/yr
-                                </span>
-                              </div>
-                              <h4 className="text-base font-bold text-white mt-3">{act.title}</h4>
-                              <p className="text-slate-400 text-xs mt-1.5 line-clamp-3 leading-relaxed">
-                                {act.description}
-                              </p>
-                            </div>
-
-                            <div className="flex gap-2 mt-4 pt-2 border-t border-slate-900/50">
-                              {/* Option 1: Not Committed yet */}
-                              {!act.user_status && (
-                                <button
-                                  onClick={() => handleStartAction(act.id)}
-                                  className="w-full bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 text-xs font-extrabold py-2 px-4 rounded-xl transition-all"
-                                >
-                                  Commit Habit
-                                </button>
-                              )}
-
-                              {/* Option 2: Active (Committed but not completed yet) */}
-                              {act.user_status === "active" && (
-                                <>
-                                  <button
-                                    onClick={() => handleCompleteAction(act.id)}
-                                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-extrabold py-2 px-3 rounded-xl transition-all"
-                                  >
-                                    Done
-                                  </button>
-                                  {act.auto_verify_provider && (
-                                    <button
-                                      onClick={() => handleAutoVerifyAction(act.id, act.auto_verify_provider)}
-                                      className="flex-1 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-sky-400 text-xs font-extrabold py-2 px-3 rounded-xl transition-all flex items-center justify-center gap-1"
-                                      title={`Auto-verify via ${act.auto_verify_provider}`}
-                                    >
-                                      <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
-                                      <span>Auto-Verify</span>
-                                    </button>
-                                  )}
-                                </>
-                              )}
-
-                              {/* Option 3: Completed */}
-                              {act.user_status === "completed" && (
-                                <div className="w-full flex items-center justify-center gap-1.5 text-emerald-400 text-xs font-extrabold py-2 bg-emerald-950/20 rounded-xl border border-emerald-900/30">
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span>Mass Chipped Off!</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "leaderboard" && (
-                    <AscensionLeaderboard users={leaderboardList} currentUserId={user.username} />
-                  )}
+                  <div
+                    id="leaderboard-tabpanel"
+                    role="tabpanel"
+                    aria-labelledby="leaderboard-tab"
+                    hidden={activeTab !== "leaderboard"}
+                  >
+                    {activeTab === "leaderboard" && (
+                      <AscensionLeaderboard users={leaderboardList} currentUserId={user.username} />
+                    )}
+                  </div>
                 </div>
 
               </div>

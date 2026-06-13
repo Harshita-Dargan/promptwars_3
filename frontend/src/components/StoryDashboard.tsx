@@ -103,7 +103,7 @@ export default function StoryDashboard({
         <div className="w-full md:w-[32%] flex flex-col gap-4">
           <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 p-5 flex flex-col justify-between h-[150px]">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
                 Active Burden
               </span>
               <h3 className="text-3xl font-black text-white mt-1">
@@ -117,7 +117,7 @@ export default function StoryDashboard({
 
           <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-800 p-5 flex flex-col justify-between h-[150px]">
             <div>
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
                 Current Elevation
               </span>
               <h3 className="text-3xl font-black text-sky-400 mt-1 flex items-baseline gap-1">
@@ -125,7 +125,7 @@ export default function StoryDashboard({
               </h3>
             </div>
             <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Compass className="w-3.5 h-3.5 text-slate-500" />
+              <Compass className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
               <span>Floating in the {config.title}</span>
             </div>
           </div>
@@ -137,7 +137,7 @@ export default function StoryDashboard({
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-2">
                 <div className={`p-2 rounded-xl bg-slate-900/80 border border-slate-800 ${config.textColor}`}>
-                  <EnvIcon className="w-5 h-5" />
+                  <EnvIcon className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
                   <h4 className="text-lg font-extrabold text-white">{config.title}</h4>
@@ -159,9 +159,9 @@ export default function StoryDashboard({
             <button
               onClick={handleRegenerate}
               disabled={loading}
-              className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-full text-sm transition-all duration-300 shadow-lg shadow-indigo-900/30 hover:scale-[1.02]"
+              className="group flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-full text-sm transition-all duration-300 shadow-lg shadow-indigo-900/30 hover:scale-[1.02] focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} aria-hidden="true" />
               <span>{loading ? "Re-painting Ecosystem..." : "Recalculate Vision"}</span>
             </button>
           </div>

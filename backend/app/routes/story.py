@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models import User, EcosystemStory, UserAction, Action
 from app.schemas import StoryOut
@@ -45,14 +45,16 @@ async def regenerate_story(
     if not current_user.onboarding_completed:
         raise HTTPException(status_code=400, detail="Onboarding baseline must be completed first")
 
-    # Get active and completed actions
-    user_actions = db.query(UserAction).filter(UserAction.user_id == current_user.id).all()
+    # Get active and completed actions eagerly loading actions to prevent N+1 queries
+    user_actions = db.query(UserAction).filter(
+        UserAction.user_id == current_user.id
+    ).options(joinedload(UserAction.action)).all()
     
     completed_titles = []
     active_titles = []
     
     for ua in user_actions:
-        action = db.query(Action).filter(Action.id == ua.action_id).first()
+        action = ua.action
         if action:
             if ua.status == "completed":
                 completed_titles.append(action.title)
